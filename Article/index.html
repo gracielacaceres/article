@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Artículos</title>
+    <style>
+        .edit-form {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .edit-form input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 5px;
+            margin-bottom: 5px;
+        }
+
+        .edit-form button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista de Artículos</h1>
+    <ul id="article-list"></ul>
+    <div id="edit-form" class="edit-form">
+        <input type="text" id="edit-title" placeholder="Nuevo título">
+        <input type="text" id="edit-content" placeholder="Nuevo contenido">
+        <button id="save-edit">Guardar</button>
+        <button id="cancel-edit">Cancelar</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script>
+        // Función para cargar la lista de artículos
+        function loadArticles() {
+            const articleList = document.getElementById('article-list');
+            axios.get('/api/articles')
+                .then(response => {
+                    articleList.innerHTML = '';
+                    response.data.forEach(article => {
+                        const li = document.createElement('li');
+                        li.textContent = article.title;
+                        li.dataset.id = article.id;
+                        // Agregar un botón de editar a cada artículo
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'Editar';
+                        editButton.addEventListener('click', () => {
+                            showEditForm(article.id);
+                        });
+                        li.appendChild(editButton);
+                        articleList.appendChild(li);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al obtener la lista de artículos:', error);
+                });
+        }
+
+        // Función para mostrar el formulario de edición con los datos del artículo seleccionado
+        function showEditForm(articleId) {
+            const editForm = document.getElementById('edit-form');
+            editForm.style.display = 'block';
+            axios.get(`/api/articles/${articleId}`)
+                .then(response => {
+                    const article = response.data;
+                    document.getElementById('edit-title').value = article.title;
+                    document.getElementById('edit-content').value = article.content;
+                    // Agregar un evento de clic al botón Guardar para enviar la solicitud PUT con los datos actualizados
+                    document.getElementById('save-edit').addEventListener('click', () => {
+                        const newTitle = document.getElementById('edit-title').value;
+                        const newContent = document.getElementById('edit-content').value;
+                        axios.put(`/api/articles/${articleId}`, { title: newTitle, content: newContent })
+                            .then(response => {
+                                console.log('Artículo actualizado exitosamente:', response.data);
+                                // Recargar la lista de artículos después de la edición
+                                loadArticles();
+                                // Ocultar el formulario de edición
+                                editForm.style.display = 'none';
+                            })
+                            .catch(error => {
+                                console.error('Error al guardar la edición:', error);
+                            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al obtener el artículo:', error);
+                });
+        }
+
+        // Evento de clic en el botón Cancelar para ocultar el formulario de edición
+        document.getElementById('cancel-edit').addEventListener('click', () => {
+            document.getElementById('edit-form').style.display = 'none';
+        });
+
+        // Cargar la lista de artículos al cargar la página
+        loadArticles();
+    </script>
+</body>
+</html>
